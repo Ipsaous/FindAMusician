@@ -67,7 +67,7 @@ class UserModel extends Model {
         $row = $sql->fetch();
         if($row){
             if(password_verify($password, $row->password)){
-                $token = $this->refreshToken($row->id);
+                $token = $this->refreshToken("users.id", $row->id);
                 if(!$token){
                     $results["error"] = true;
                     $results["message"] = "Token non valide";
@@ -94,7 +94,7 @@ class UserModel extends Model {
         $sql->execute([$facebook_uid]);
         $row = $sql->fetch();
         if($row){
-            $token = $this->refreshToken($row->id);
+            $token = $this->refreshToken("users.id", $row->id);
             if(!$token){
                 $results["error"] = true;
                 $results["message"] = "Token non valide";
@@ -139,12 +139,12 @@ class UserModel extends Model {
         }
     }
 
-    public function refreshToken($id, $oldToken = null){
+    public function refreshToken($field, $id, $oldToken = null){
 
         $token = Helper::generateToken();
         //Je check si c'est un refresh token apres expiration
         if($oldToken != null){
-            $sql = $this->db->prepare("UPDATE users SET token = ? WHERE users.id = ? AND token = ?");
+            $sql = $this->db->prepare("UPDATE users SET token = ? WHERE {$field} = ? AND token = ?");
             $sql->execute([$token, $id, $oldToken]);
             if($sql->rowCount() > 0){
                 return $token;
@@ -152,7 +152,7 @@ class UserModel extends Model {
                 return false;
             }
         }else{
-            $sql = $this->db->prepare("UPDATE users SET token = ? WHERE users.id = ?");
+            $sql = $this->db->prepare("UPDATE users SET token = ? WHERE {$field} = ?");
             $sql->execute([$token, $id]);
             if($sql->rowCount() > 0){
                 return $token;

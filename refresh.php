@@ -11,7 +11,7 @@ if(!empty($_POST)){
 
         if(!empty($_POST['id']) && !empty($_POST['_token'])){
 
-            $token = $getModel->refreshToken($_POST['id'], $_POST['_token']);
+            $token = $getModel->refreshToken("users.id", $_POST['id'], $_POST['_token']);
             if($token === false){
                 $results['error'] = true;
                 $results['message'] = "Impossible de rafraichir le token, veuillez vous reconnecter";
