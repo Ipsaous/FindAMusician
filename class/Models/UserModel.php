@@ -14,6 +14,15 @@ class UserModel extends Model {
         parent::__construct();
     }
 
+    /**
+     * Fonction permettant d'enregistrer un utilisateur de maniere "classique"
+     * @param string $pseudo
+     * @param string $email
+     * @param string $password
+     * @param string $password2
+     * @param Validator $validator
+     * @return array
+     */
     public function registerNormal($pseudo, $email, $password, $password2, Validator $validator){
 
             $validator->checkPseudo($pseudo);
@@ -28,15 +37,20 @@ class UserModel extends Model {
                     $validator->setErrors('insert', "Une erreur s'est produite");
                     $validator->setErrors('error', true);
                 }else{
-                    if(!Helper::sendValidationEmail($this->db->lastInsertId(), $email, $key)){
-                        $validator->setErrors('error', true);
-                        $validator->setErrors('send_email', "L'envoie du mail a échoué");
-                    }
+                    Helper::sendValidationEmail($this->db->lastInsertId(), $email, $key);
                 }
             }
         return $validator->getErrors();
     }
 
+    /**
+     * Fonction permettant d'enregistrer un utilisateur via facebook
+     * @param string $pseudo
+     * @param string $facebook_uid
+     * @param string $email
+     * @param Validator $validator
+     * @return array
+     */
     public function registerFacebook($pseudo, $facebook_uid, $email, Validator $validator){
 
         if($validator->checkIfFieldsExist('facebook_uid', $facebook_uid)){
@@ -60,6 +74,12 @@ class UserModel extends Model {
 
     }
 
+    /**
+     * Fonction permettant de logger l'utilisateur via inscription classique
+     * @param string $pseudo
+     * @param string $password
+     * @return User
+     */
     public function login($pseudo, $password){
 
         $sql = $this->db->prepare("SELECT * FROM users WHERE pseudo = ?");
@@ -72,7 +92,7 @@ class UserModel extends Model {
                     $results["error"] = true;
                     $results["message"] = "Token non valide";
                 }else{
-                    $user = $this->buildUser($row, $token);
+                    $user = $this->buildUser($row);
                     $user->setToken($token);
                     return $user;
                 }
@@ -89,6 +109,11 @@ class UserModel extends Model {
 
     }
 
+    /**
+     * Fonction permettant de logger un utilisateur via facebook
+     * @param string $facebook_uid
+     * @return User
+     */
     public function loginFacebook($facebook_uid){
         $sql = $this->db->prepare("SELECT * FROM users WHERE facebook_uid =?");
         $sql->execute([$facebook_uid]);
@@ -110,6 +135,10 @@ class UserModel extends Model {
         return $results;
     }
 
+    /**
+     * Fonction permettant de récupérer tous les utilisateurs (Virer la récupération du password)
+     * @return array
+     */
     public function findAll()
     {
         $sql = $this->db->query("SELECT * FROM users");
@@ -117,6 +146,12 @@ class UserModel extends Model {
         return $results;
     }
 
+    /**
+     * Récupération d'un utilisateur en fonction de son id
+     * @param $id
+     * @param string $fields
+     * @return mixed
+     */
     public function findById($id, $fields = "*")
     {
         $sql = $this->db->prepare("SELECT {$fields} FROM users WHERE users.id = ?");
@@ -125,6 +160,12 @@ class UserModel extends Model {
         return $results;
     }
 
+    /**
+     * Fonction permettant de vérifier si un utilisateur a déja un facebook id
+     * @param $facebook_uid
+     * @param string $fields
+     * @throws \Exception
+     */
     public function findByFacebookId($facebook_uid, $fields = "*"){
 
         $select = "SELECT {$fields} FROM users WHERE facebook_uid = ?";
@@ -139,6 +180,13 @@ class UserModel extends Model {
         }
     }
 
+    /**
+     * Fonction permettant de rafraichir le token
+     * @param string $field
+     * @param string $id
+     * @param null $oldToken
+     * @return bool|string
+     */
     public function refreshToken($field, $id, $oldToken = null){
 
         $token = Helper::generateToken();
@@ -165,6 +213,11 @@ class UserModel extends Model {
 
     }
 
+    /**
+     * Fonction permettant de "construire" un utilisateur en fonction d'une ligne de base de donnée
+     * @param $row
+     * @return User
+     */
     public function buildUser($row){
 
         $user = new User();
@@ -184,7 +237,13 @@ class UserModel extends Model {
     public function update($id){
 
     }
-    
+
+    /**
+     * Fonction permettant de confirmer un utilisateur apres inscription
+     * @param $id
+     * @param $validationKey
+     * @return bool
+     */
     public function confirmUser($id, $validationKey){
         $sql = $this->db->prepare("UPDATE users SET actif = 1 WHERE users.id = ? AND validation_key = ?");
         $sql->execute([$id, $validationKey]);
@@ -195,6 +254,15 @@ class UserModel extends Model {
     }
 
 
+    /**
+     * Fonction permettant d'update le sexe et la date de naissance d'un utilisateur
+     * @param string $token
+     * @param string $id
+     * @param string $gender
+     * @param string $birthday_date
+     * @param Validator $validator
+     * @return array
+     */
     public function updateGender($token, $id, $gender, $birthday_date, Validator $validator)
     {
         if(!$validator->checkGender($gender)){
@@ -213,7 +281,7 @@ class UserModel extends Model {
 
             $sql = $this->db->prepare("UPDATE users SET gender = ?, birthday_date = ? WHERE users.id = ?");
             $sql->execute([$gender, $birthday_date, $id]);
-            if(!$sql){
+            if(!$sql->rowCount() > 0){
                 $validator->setErrors("error", true);
                 $validator->setErrors("insert", "Erreur lors de l'insertion");
                 $validator->setErrors("date", $birthday_date);

@@ -19,7 +19,6 @@ if(!empty($_POST)){
                 $user = $getModel->findById($_POST['id'], "id, email, validation_key");
                 if($user){
                    Helper::sendValidationEmail($user->id, $user->email, $user->validation_key);
-
                 }
             }
 

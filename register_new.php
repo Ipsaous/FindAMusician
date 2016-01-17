@@ -17,11 +17,6 @@ if(!empty($_GET['action']) && $_GET['action'] === "normal") {
             if(count($results) === 0){
                 $results['error'] = false;
                 $results['message']['success'] = "Un email vient de vous être envoyé. Veuillez cliquer sur le lien présent dans le mail pour finaliser votre inscription";
-            }else{
-                if(array_key_exists('send_email', $results)){
-                    $results['error'] = true;
-                    $results['message']['error_email'] = true;
-                }
             }
 
         } else {
